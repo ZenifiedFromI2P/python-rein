@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import re
-import bitcoinecdsa
+from app.rein.lib import bitcoinecdsa
 import unittest
 import click
 
