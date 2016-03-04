@@ -41,3 +41,22 @@ class PersistConfig(Base):
             return True
         else:
             return False
+
+    @classmethod
+    def set(self, rein, key, value):
+        res = rein.session.query(PersistConfig).filter(PersistConfig.key == key).first()
+        if res:
+            res.value = value
+        else:
+            p = PersistConfig(rein.session, key, value)
+            click.echo(p)
+            rein.session.add(p)
+        rein.session.commit()
+
+    @classmethod
+    def get(self, rein, key):
+        res = rein.session.query(PersistConfig).filter(PersistConfig.key == key).first()
+        if res:
+            return res.value
+        else:
+            return None

@@ -1,5 +1,6 @@
 import os
 import logging
+import bitcoin
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from user import User, Base
@@ -20,6 +21,8 @@ class Config():
         self.setup_db()
         self.log.info('database connected')
         self.testnet = 1 if PersistConfig.get_testnet(self) else 0
+        if PersistConfig.get_testnet(self):
+            bitcoin.SelectParams('testnet')
         self.log.info('testnet = ' + str(self.testnet))
 
     def setup_logging(self):
