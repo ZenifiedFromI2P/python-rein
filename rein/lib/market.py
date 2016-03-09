@@ -36,16 +36,18 @@ def bid_prompt(rein, bids):
     valid_bids = []
     key = pubkey(rein.user.dkey)
     for b in bids:
-        if 'Description' not in b or b['Worker public key'] == key or b['Mediator public key'] == key:
+        if 'Description' not in b or b['Job creator public key'] != key:
             continue 
         click.echo('%s - %s - %s - %s - %s BitCoin' % (str(i), b['Job name'], b["Worker"],
                                                   shorten(b['Description']), b['Bid amount (BTC)']))
         valid_bids.append(b)
         i += 1
     if len(valid_bids) == 0:
+        click.echo('No bids available.')
         return None
     choice = get_choice(valid_bids, 'bid')
     if choice == 'q':
+        click.echo('None chosen.')
         return False
     bid = valid_bids[choice]
     click.echo('You have chosen %s\'s bid.\n\nFull description: %s\nBid amount (BTC): %s\n\nPlease review carefully before accepting. (Ctrl-c to abort)' % 
@@ -241,6 +243,7 @@ def sign_and_store_document(rein, doc_type, document, signature_address=None, si
             d = Document(rein, doc_type, signed, sig_verified=True, testnet=rein.testnet)
             rein.session.add(d)
             rein.session.commit()
+        return d
     return validated
 
 def assemble_order(rein, document):

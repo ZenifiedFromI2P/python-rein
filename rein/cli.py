@@ -196,11 +196,12 @@ def post(multi, identity, defaults, dry_run):
                 {'label': 'Job creator public key',         'value': key},
                 {'label': 'Job creator master address',     'value': user.maddr},
              ]
-    document = assemble_document('Job', fields)
-    res = sign_and_store_document(rein, 'job_posting', document, user.daddr, user.dkey, store)
-    if res and store:
+    document_text = assemble_document('Job', fields)
+    document = sign_and_store_document(rein, 'job_posting', document_text, user.daddr, user.dkey, store)
+    if document and store:
         click.echo("Posting created. Run 'rein sync' to push to available servers.")
-    log.info('posting signed') if res else log.error('posting failed')
+    assemble_order(rein, document)
+    log.info('posting signed') if document else log.error('posting failed')
 
 
 @cli.command()
@@ -337,7 +338,7 @@ def offer(multi, identity, defaults, dry_run):
         if state in ['bid', 'job_posting']:
             bids.append(bid)
     
-    if len(data['bids']) == 0:
+    if len(bids) == 0:
         click.echo('None found')
         return
 
@@ -346,7 +347,6 @@ def offer(multi, identity, defaults, dry_run):
     else:
         bid = bid_prompt(rein, bids)
     if not bid:
-        click.echo('None chosen')
         return
 
     log.info('got bid to offer')
