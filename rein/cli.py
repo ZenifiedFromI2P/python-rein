@@ -14,14 +14,12 @@ from sqlalchemy import and_
 
 from lib.ui import create_account, import_account, enroll, identity_prompt, hilight
 from lib.user import User
-from lib.bucket import Bucket, get_bucket_count, get_urls
+from lib.bucket import Bucket
 from lib.document import Document, get_user_documents, get_job_id
 from lib.placement import Placement, create_placements, get_remote_document_hash, get_placements
 from lib.validate import filter_and_parse_valid_sigs, parse_document 
 from lib.bitcoinecdsa import sign, pubkey
-from lib.market import mediator_prompt, accept_prompt, job_prompt, bid_prompt, delivery_prompt,\
-        dispute_prompt, resolve_prompt, assemble_document, sign_and_store_document, unique,\
-        assemble_order
+from lib.market import * 
 from lib.order import Order
 from lib.script import build_2_of_3, build_mandatory_multisig, check_redeem_scripts
 from lib.persistconfig import PersistConfig
@@ -196,11 +194,21 @@ def post(multi, identity, defaults, dry_run):
                 {'label': 'Job creator public key',         'value': key},
                 {'label': 'Job creator master address',     'value': user.maddr},
              ]
-    document = assemble_document('Job', fields)
-    res = sign_and_store_document(rein, 'job_posting', document, user.daddr, user.dkey, store)
-    if res and store:
+    document_text = assemble_document('Job', fields)
+    if not rein.testnet:
+        m = re.search('test', document_text, re.IGNORECASE)
+        if m:
+            click.echo('Your post includes the word "test". If this post is a test, '
+                       'please put rein into testnet mode with "rein testnet true" '
+                       'and setup a test identity before posting.')
+            if not click.confirm(hilight('Would you like to continue to post this on mainnet?', True, True), default=False):
+                return
+
+    document = sign_and_store_document(rein, 'job_posting', document_text, user.daddr, user.dkey, store)
+    if document and store:
         click.echo("Posting created. Run 'rein sync' to push to available servers.")
-    log.info('posting signed') if res else log.error('posting failed')
+    assemble_order(rein, document)
+    log.info('posting signed') if document else log.error('posting failed')
 
 
 @cli.command()
@@ -271,6 +279,7 @@ def bid(multi, identity, defaults, dry_run):
     fields = [
                 {'label': 'Job name',                       'value_from': job},
                 {'label': 'Worker',                         'value': user.name},
+                {'label': 'Worker contacat',                'value': user.contact},
                 {'label': 'Description',                    'not_null': form},
                 {'label': 'Bid amount (BTC)',               'not_null': form},
                 {'label': 'Primary escrow address',         'value': primary_addr},
@@ -337,7 +346,7 @@ def offer(multi, identity, defaults, dry_run):
         if state in ['bid', 'job_posting']:
             bids.append(bid)
     
-    if len(data['bids']) == 0:
+    if len(bids) == 0:
         click.echo('None found')
         return
 
@@ -346,7 +355,6 @@ def offer(multi, identity, defaults, dry_run):
     else:
         bid = bid_prompt(rein, bids)
     if not bid:
-        click.echo('None chosen')
         return
 
     log.info('got bid to offer')
@@ -499,6 +507,8 @@ def accept(multi, identity, defaults, dry_run):
     our_orders = []
     for res in valid_results:
         if res['Job creator public key'] == key:
+            order = Order.get_by_job_id(rein, res['Job ID'])
+            res['state'] = order.get_state(rein, Document)
             our_orders.append(res)
 
     if len(our_orders) == 0:
@@ -770,7 +780,7 @@ def request(multi, identity, url):
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'http://' + url
 
-    if get_bucket_count(rein, url) > 4:
+    if Bucket.get_bucket_count(rein, url) > 4:
         click.echo("You already have enough (3) buckets from %s" % url)
         log.warning('too many buckets')
         return
@@ -942,11 +952,29 @@ def status(multi, identity, jobid):
             past_tense = order.get_past_tense(order.get_state(rein, Document))
             click.echo("%s   %s   %s" % (order.id, order.job_id, past_tense))
     else:
-        order = Order.get_by_job_id(rein, jobid)
-        documents = order.get_documents(rein, Document)
-        for document in documents:
-            click.echo("\n" + document.contents)
-
+        remote_documents = []
+        for url in urls:    
+            log.info("Querying %s for job id %s..." % (url, jobid))
+            sel_url = "{0}query?owner={1}&query=by_job_id&job_ids={2}&testnet={3}"
+            try:
+                answer = requests.get(url=sel_url.format(url, user.maddr, jobid, rein.testnet))
+            except:
+                click.echo('Error connecting to server.')
+                log.error('server connect error ' + url)
+                continue
+            data = answer.json()
+            remote_documents += filter_and_parse_valid_sigs(rein, data['by_job_id'])
+        unique_documents = unique(remote_documents)
+        for doc in remote_documents:
+            click.echo(doc)
+        if len(remote_documents) == 0:
+            order = Order.get_by_job_id(rein, jobid)
+            if order:
+                documents = order.get_documents(rein, Document)
+                for document in documents:
+                    click.echo("\n" + document.contents)
+            else:
+                click.echo("Job id not found")
 
 @cli.command()
 @click.argument('testnet', required=True)
@@ -976,7 +1004,7 @@ def init(multi, identity):
         return sys.exit(1)
     user = get_user(rein, identity)
     key = pubkey(user.dkey)
-    urls = get_urls(rein)
+    urls = Bucket.get_urls(rein)
     return (log, user, key, urls)
 
 

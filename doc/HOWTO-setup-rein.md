@@ -6,6 +6,9 @@ Rein is a new decentralized labor market that provides a safe and easy way to ea
 
 In this tutorial, we will show you how to use Rein to earn Bitcoin online. We will also show you how to generate a couple of standalone Bitcoin keys that will form the basis of your user account in Rein.
 
+## Time to complete
+
+10-20 minutes
 
 ##Prerequisites
 
@@ -23,7 +26,7 @@ Once you have all of the prerequisites out of the way, let's move on to installi
 
 ##Step 1 -- Install python-rein and helper apps
 
-The first step in using Rein to earn Bitcoin is to install the python-rein software on your computer. Currently, the best way to install python-rein is simply to clone it from the Github repository. In the future, it will likely be available through your package manager.
+The first step in using Rein to earn Bitcoin is to install the python-rein software on your computer. Currently, the best way to install python-rein is to clone it from the Github repository. In the future, it will likely be available through your package manager.
 
 ###Clone the repo    
 
@@ -39,9 +42,9 @@ Before installing, change to the `python-rein` directory:
 
     $ cd python-rein
 
-We can now install `python-rein` with this command:
+We can now install it with this command:
 
-    $ pip install --editable .
+    $ sudo pip install --editable .
 
 With rein installed, we can easily check if it is setup correctly by running it.
 
@@ -150,7 +153,7 @@ Rein uses microhosting servers to share data between its users. Let's connect py
     
 You should now have a message saying you have 1 bucket at the above server. Repeat with a second server.
 
-    $ rein request rein1-ams.reinproject.org:2016
+    $ rein request rein2-ams.reinproject.org:2016
 
 Again, a message should confirm that you have 1 bucket at the above server.
 

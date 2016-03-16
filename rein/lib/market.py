@@ -1,6 +1,6 @@
 from document import Document, get_documents_by_job_id, get_document_type, calc_hash
 from validate import validate_enrollment, parse_document
-from bucket import get_urls
+from bucket import Bucket 
 from bitcoinecdsa import sign, verify, pubkey, pubkey_to_address
 from order import Order
 import os
@@ -36,16 +36,18 @@ def bid_prompt(rein, bids):
     valid_bids = []
     key = pubkey(rein.user.dkey)
     for b in bids:
-        if 'Description' not in b or b['Worker public key'] == key or b['Mediator public key'] == key:
+        if 'Description' not in b or b['Job creator public key'] != key:
             continue 
         click.echo('%s - %s - %s - %s - %s BitCoin' % (str(i), b['Job name'], b["Worker"],
                                                   shorten(b['Description']), b['Bid amount (BTC)']))
         valid_bids.append(b)
         i += 1
     if len(valid_bids) == 0:
+        click.echo('No bids available.')
         return None
     choice = get_choice(valid_bids, 'bid')
     if choice == 'q':
+        click.echo('None chosen.')
         return False
     bid = valid_bids[choice]
     click.echo('You have chosen %s\'s bid.\n\nFull description: %s\nBid amount (BTC): %s\n\nPlease review carefully before accepting. (Ctrl-c to abort)' % 
@@ -68,10 +70,10 @@ def job_prompt(rein, jobs):
         click.echo('%s - %s - %s - %s' % (str(i), j["Job creator"],
                                           j['Job name'], shorten(j['Description'])))
         i += 1
-    choice = get_choice(jobs, 'job')
+    choice = get_choice(valid_jobs, 'job')
     if choice == 'q':
         return False
-    job = jobs[choice]
+    job = valid_jobs[choice]
     click.echo('You have chosen a Job posted by %s.\n\nFull description: %s\n\nPlease pay attention '
                'to each requirement and provide a time frame to complete the job. (Ctrl-c to abort)\n' % 
                (job['Job creator'], job['Description']))
@@ -102,15 +104,19 @@ def delivery_prompt(rein, choices, detail='Description'):
 
 def accept_prompt(rein, choices, detail='Description'):
     i = 0
+    click.echo("Offers and Deliveries")
+    click.echo("---------------------")
     for c in choices:
         if 'Primary escrow redeem script' not in c:
             continue
         if detail in c:
-            click.echo('%s - %s - %s - %s' % (str(i), c['Job name'], c['Job ID'], shorten(c[detail])))
+            click.echo('%s: %s - %s - %s - %s' % (c['state'].title(), str(i),
+                        c['Job name'], c['Job ID'], shorten(c[detail])))
         else:
-            click.echo('%s - %s - %s - %s' % (str(i), c['Job name'], c['Job ID'], shorten(c['Description'])))
+            click.echo('%s: %s - %s - %s - %s' % (c['state'].title(), str(i),
+                        c['Job name'], c['Job ID'], shorten(c['Description'])))
         i += 1
-    choice = get_choice(choices, 'delivery')
+    choice = get_choice(choices, 'delivery or offer')
     if choice == 'q':
         return None
     chosen = choices[choice]
@@ -241,6 +247,7 @@ def sign_and_store_document(rein, doc_type, document, signature_address=None, si
             d = Document(rein, doc_type, signed, sig_verified=True, testnet=rein.testnet)
             rein.session.add(d)
             rein.session.commit()
+        return d
     return validated
 
 def assemble_order(rein, document):
@@ -256,7 +263,7 @@ def assemble_order(rein, document):
     if 'Job ID' not in parsed:
         return 0
     job_id = parsed['Job ID']
-    urls = get_urls(rein)
+    urls = Bucket.get_urls(rein)
     documents = []
     if job_id:
         for url in urls:
@@ -289,14 +296,18 @@ def assemble_order(rein, document):
     # with that job id. if it can figure out the doc type, it sets the order id on it. this allows
     # Order.get_documents() to provide all documents or to provide just the post or the bid.
 
-def unique(the_array, key):
+def unique(the_array, key=None):
     """
     Filter an array of dicts by key
     """
     unique = []
     values = []
     for element in the_array:
-        if key in element and element[key] not in values:
-            values.append(element[key])
-            unique.append(element)
+        if key:
+            if key in element and element[key] not in values:
+                values.append(element[key])
+                unique.append(element)
+        else:
+            if element not in unique:
+                unique.append(element)
     return unique

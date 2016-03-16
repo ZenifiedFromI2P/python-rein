@@ -118,7 +118,8 @@ def create_account(rein):
             'daddr': daddr,
             'dkey': dkey,
             'will_mediate': will_mediate,
-            'mediator_fee': mediator_fee}
+            'mediator_fee': mediator_fee,
+            'testnet': rein.testnet}
     if not os.path.isfile(rein.backup_filename):
         f = open(rein.backup_filename, 'w')
         try:
@@ -145,13 +146,17 @@ def import_account(rein):
     if not check_bitcoin_address(data['maddr']) or not check_bitcoin_address(data['daddr']):
         click.echo("Invalid Bitcoin address(es) in backup file.")
         sys.exit()
+    if 'testnet' not in data:
+        click.echo("Warning: testnet not set in backup. Setting to "+ str(rein.testnet))
+        data['testnet'] = rein.testnet
     new_identity = User(data['name'],
                         data['contact'],
                         data['maddr'],
                         data['daddr'],
                         data['dkey'],
                         data['will_mediate'],
-                        data['mediator_fee'])
+                        data['mediator_fee'],
+                        data['testnet'])
     rein.session.add(new_identity)
     rein.session.commit()
     rein.user = new_identity
@@ -179,6 +184,8 @@ def enroll(rein):
         filename = click.prompt(hilight("File containing signed statement", True, True), type=str, default=rein.sig_enroll_filename)
         if os.path.isfile(filename):
             done = True
+        else:
+            click.echo("File not found. Please check the file name and location and try again.")
     f = open(filename, 'r')
     signed = f.read()
     res = validate_enrollment(signed)
