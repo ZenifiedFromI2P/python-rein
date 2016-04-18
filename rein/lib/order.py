@@ -14,9 +14,11 @@ FLOW = {
                                                                                  'workerdispute']},
         'delivery':       {'pre': ['offer'],                            'next': ['accept', 'creatordispute',
                                                                                  'workerdispute']},
+        'cancel':         {'pre': ['job_posting', 'bid', 'offer', 'delivery'], 'next': ['workerdispute','acceptcancel']},                 
         'creatordispute': {'pre': ['offer', 'delivery'],                'next': ['resolve', 'workerdispute']},
         'workerdispute':  {'pre': ['offer', 'delivery', 'accept'],      'next': ['resolve', 'creatordispute']},
         'accept':         {'pre': ['delivery'],                         'next': ['workerdispute', 'complete']},
+        'acceptcancel':   {'pre': ['cancel'],                           'next': ['complete']},
         'resolve':        {'pre': ['creatordispute', 'workerdispute'],  'next': ['complete']},
        }
 
@@ -24,10 +26,12 @@ PAST_TENSE = {
         'job_posting':      'posted',
         'bid':              'bid(s) submitted',
         'offer':            'job awarded',
+        'cancel':           'cancel proposed',
         'delivery':         'deliverables submitted',
         'creatordispute':   'disputed by job creator',
         'workerdispute':    'disputed by worker',
         'accept':           'complete, work accepted',
+        'acceptcancel':     'canceled',
         'resolve':          'complete, dispute resolved'
         }
 
