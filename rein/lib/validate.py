@@ -8,18 +8,26 @@ import time
 from block import Block
 
 def filter_out_expired(rein, user, urls, jobs):
+    '''
+    Filters out expired jobs and those that have no expiration set.
+    If a clock hash is included, use 14 day default for expiration.
+    '''
     live = []
     times = {}
     click.echo('Verifying block times...')
-    with click.progressbar(jobs) as bar:
-        for j in bar:
+    with click.progressbar(jobs) as jobs_with_progress:
+        for j in jobs_with_progress:
             if 'Clock hash' not in j:
                 continue
             block_hash = j['Clock hash']
             if 'Expiration (days)' not in j:
                 continue
+
+            # get cached time of block if we have it
             if Block.get_time(rein, block_hash):
                 times[block_hash] = Block.get_time(rein, block_hash)
+
+            # otherwise we're going to ask each server for it
             elif block_hash not in times:
                 # request block info for the clock hash
                 for url in urls:
@@ -28,7 +36,7 @@ def filter_out_expired(rein, user, urls, jobs):
                         answer = requests.get(url=sel_url.format(user.maddr, block_hash))
                     except requests.exceptions.ConnectionError:
                         click.echo('Could not reach %s.' % url)
-                        return None
+
                     data = answer.json()
                     if not Block.get_time(rein, block_hash):
                         b = Block(block_hash, data['time'], data['height'])
@@ -50,6 +58,10 @@ def filter_out_expired(rein, user, urls, jobs):
 
 
 def choose_best_block(blocks):
+    '''
+    Given an array of blocks, returns the hash and time of the
+    most frequent in the array.
+    '''
     hashes = []
     times = {}
     for b in blocks:
