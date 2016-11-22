@@ -18,7 +18,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     platforms='any',
-    package_data={'': ['rein/html/*']}
+    package_data={'': ['rein/html/*']},
     install_requires=dependencies,
     entry_points={
         'console_scripts': [
