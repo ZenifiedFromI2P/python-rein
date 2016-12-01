@@ -1,26 +1,30 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-import click
+import toml
+global conf
 
-Base = declarative_base()
+# Warning, slowly implementing the whole thing
+
+def initconf():
+    fp = open('config.toml', 'r')
+    conf = toml.loads(fp.read())
+    fp.close()
+
+def updateconfig():
+    fp = open('config.toml', 'w')
+    fp.write(toml.dumps(conf))
+    fp.close()
+
+initconf()
 
 
-class PersistConfig(Base):
-    __tablename__ = 'config'
-
-    id = Column(Integer, primary_key=True)
-    key = Column(String(255))
-    value = Column(String(255))
-
-    def __init__(self, session, key, value):
+class PersistConfig(object):
+    def __init__(self, key, value):
         self.key = key
-        self.value = value
-        session.add(self)
-        session.commit()
+        conf[key] = self.value = value
+        updateconfig()
 
     def set(self, rein, key, value=''):
         self.key = value
-        rein.session.commit()
+        updateconfig()
 
     @classmethod
     def set_testnet(self, rein, value):
