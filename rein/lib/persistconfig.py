@@ -25,26 +25,29 @@ class PersistConfig(object):
     def set(self, value=''):
         self.key = value
         updateconfig()
+    @classmethod
+    def get_testnet(self):
+        return conf.get('testnet', False)
 
     @classmethod
     def set_testnet(self, value):
         conf['testnet'] = value
+        updateconfig()
 
     @classmethod
-    def get_testnet(self, rein):
-        return conf.get('testnet', False)
-    @classmethod
-    def set_tor(self, value):
+    def get_tor(self):
         return conf.get('tor', False)
 
     @classmethod
-    def get_tor(self, value):
+    def set_tor(self, value):
         conf['tor'] = value
+        updateconfig()
 
     @classmethod
-    def set_debug(self, rein, value):
+    def get_debug(self):
         return conf.get('debug', True)
 
     @classmethod
-    def get_debug(self, rein):
-        conf['debug'] = True
+    def set_debug(self, value):
+        conf['debug'] = value
+        updateconfig()
