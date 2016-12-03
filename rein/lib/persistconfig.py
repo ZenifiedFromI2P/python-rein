@@ -22,60 +22,29 @@ class PersistConfig(object):
         conf[key] = self.value = value
         updateconfig()
 
-    def set(self, rein, key, value=''):
+    def set(self, value=''):
         self.key = value
         updateconfig()
 
     @classmethod
-    def set_testnet(self, rein, value):
-        res = rein.session.query(PersistConfig).filter(PersistConfig.key == 'testnet').first()
-        if res:
-            res.value = value
-        else:
-            p = PersistConfig(rein.session, 'testnet', value)
-            rein.session.add(p)
-        rein.session.commit()
+    def set_testnet(self, value):
+        conf['testnet'] = value
 
     @classmethod
     def get_testnet(self, rein):
-        res = rein.session.query(PersistConfig).filter(PersistConfig.key == 'testnet').first()
-        if res and res.value == 'true':
-            return True
-        else:
-            return False
+        return conf.get('testnet', False)
+    @classmethod
+    def set_tor(self, value):
+        return conf.get('tor', False)
 
     @classmethod
-    def set_tor(self, rein, value):
-        res = rein.session.query(PersistConfig).filter(PersistConfig.key == 'tor').first()
-        if res:
-            res.value = value
-        else:
-            p = PersistConfig(rein.session, 'tor', value)
-            rein.session.add(p)
-        rein.session.commit()
-
-    @classmethod
-    def get_tor(self, rein):
-        res = rein.session.query(PersistConfig).filter(PersistConfig.key == 'tor').first()
-        if res and res.value == 'true':
-            return True
-        else:
-            return False
+    def get_tor(self, value):
+        conf['tor'] = value
 
     @classmethod
     def set_debug(self, rein, value):
-        res = rein.session.query(PersistConfig).filter(PersistConfig.key == 'debug').first()
-        if res:
-            res.value = value
-        else:
-            p = PersistConfig(rein.session, 'debug', value)
-            rein.session.add(p)
-        rein.session.commit()
+        return conf.get('debug', True)
 
     @classmethod
     def get_debug(self, rein):
-        res = rein.session.query(PersistConfig).filter(PersistConfig.key == 'debug').first()
-        if res and res.value == 'true':
-            return True
-        else:
-            return False
+        conf['debug'] = True
